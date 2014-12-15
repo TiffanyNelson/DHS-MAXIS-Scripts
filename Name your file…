@@ -1,0 +1,84 @@
+'GATHERING STATS----------------------------------------------------------------------------------------------------
+name_of_script = "NOTE - CCAP Case Note"
+start_time = timer
+
+'LOADING ROUTINE FUNCTIONS
+Set run_another_script_fso = CreateObject("Scripting.FileSystemObject")
+Set fso_command = run_another_script_fso.OpenTextFile("I:\Scripts\BlueZone Script Directory\Script Files\NOTE- CCAP Case Note.vbs")
+text_from_the_other_script = fso_command.ReadAll
+fso_command.Clos
+Execute text_from_the_other_scrip
+
+'Dialog------------------------------------------------------------------------------------------------
+
+BeginDialog CCAP_case_note, 0, 0, 231, 315, "CCAP Case Note"
+  Text 35, 10, 55, 15, "Case Number"
+  EditBox 100, 10, 65, 15, case_number
+  Text 10, 40, 90, 10, "Who provided the contact"
+  DropListBox 115, 40, 75, 15, "Client"+chr(9)+"Provider"+chr(9)+"Employment services"+chr(9)+"Other", Who_provided_contact
+  Text 5, 70, 80, 15, "Reason for Contact"
+  DropListBox 105, 65, 80, 30, "Change in job"+chr(9)+"Change in provider"+chr(9)+"Change in HHLD"+chr(9)+"Move"+chr(9)+"Application"+chr(9)+"Renewal"+chr(9)+"Other", Reason_for_contact
+  Text 5, 105, 150, 15, "Will this change affect the need for child care"
+  DropListBox 165, 105, 30, 20, "YES"+chr(9)+"NO", Need_for_care
+  Text 10, 135, 80, 10, "Is unit on cash?"
+  DropListBox 100, 135, 110, 15, "Unit is on cash"+chr(9)+"Unit is not on cash", Unit_cash_status
+  Text 20, 160, 170, 20, "If yes and unit moves transfer CCAP.  If not, tikl for transfer of CCAP in 45 days"
+  CheckBox 15, 185, 175, 10, "Check here if change report form has been sent", Report_form_checkbox
+  CheckBox 15, 200, 175, 15, "Has child care worker been notified of change", Notify_worker_checkbox
+  Text 55, 270, 65, 15, "Worker signature"
+  EditBox 125, 270, 80, 15, Worker_Signature
+  ButtonGroup ButtonPressed
+    OkButton 105, 295, 50, 15
+    CancelButton 155, 295, 50, 15
+  Text 5, 225, 200, 40, " "
+EndDialog
+
+
+'Connect to bluezone
+EMConnect ""
+
+'Does the dialog
+Dialog CCAP_case_note
+If buttonpressed = 0 then stopscript	
+
+'Check for MAXIS
+EMSendKey "<enter>"
+EMWaitready 0 ,0
+EMReadScreen MAXIS_check, 5, 1, 39
+If MAXIS_Check <> "MAXIS" then
+	MsgBox "You are not in MAXIS"
+	StopScript
+End if
+
+'This do loop get's back to the SELF menu
+Do
+	EMSendKey "<PF3>"
+	EMWaitReady 0, 0
+	EMReadScreen SELF_check, 4, 2, 50
+
+Loop until SELF_check = "SELF"
+
+
+
+
+'Navigate to case/note for the case number
+EMWriteScreen "CASE", 16, 43
+EMWriteScreen case_number, 18, 43
+EMWriteScreen "NOTE", 21, 70
+
+'Transmit to the next screen
+EMSendKey "<enter>"
+EMWaitReady 0, 0
+
+'PF9 to open a new case note
+EMSendKey "<PF9>"
+EMWaitReady 0, 0
+
+'Write case note
+call write_new_line_in_case_note("CCAP Case Note")
+call write_editbox_in_case_note("Reason for Contact", Reason_for_contact, 6)
+call write_new_line_in_case_note("* " & Unit_cash_status)
+If TIKL_check = 1 then call write_new_line_in_case_note("*TILK sent.")
+
+call write_new_line_in_case_note("---")
+call write_new_line_in_case_note(Worker_signature)
